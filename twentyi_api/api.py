@@ -70,7 +70,6 @@ class TwentyIRestAPI:
             jr = response.json()
             try:
                 error = jr["error"]
-                message = jr["message"]
             except:
                 pass
         except json.decoder.JSONDecodeError as e:
