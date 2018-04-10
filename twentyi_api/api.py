@@ -38,7 +38,8 @@ class TwentyIRestAPI:
                     raise Exception("Got unexpected response from login endpoint") from e
             # Use reseller token
             elif "bearer" in auth:
-                self.auth = auth["bearer"]
+                token = self.token_to_bearer(auth["bearer"])
+                self.auth = token
             else:
                 raise ValueError("Please supply authentication")
         else:
