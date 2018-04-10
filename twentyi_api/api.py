@@ -31,11 +31,10 @@ class TwentyIRestAPI:
             if "bearer" in auth and "username" in auth and "password" in auth:
                 """Use reseller token, subuser username and subuser password to
                 limit to subuser scope"""
-                headers = {"Authorization": "Bearer {}".format(auth["bearer"])}
                 o = {"grant_type": "password", "username": auth["username"],
                      "password": auth["password"]}
                 r = requests.post(auth_url+"/login/authenticate", json=o,
-                                  headers=headers)
+                                  headers=self.build_headers(auth["bearer"]))
                 try:
                     token = self.token_to_bearer(r.json()["access_token"])
                     self.auth = token
@@ -45,16 +44,18 @@ class TwentyIRestAPI:
             elif "bearer" in auth and "username" in auth:
                 """Use reseller token and subuser username to limit to subuser
                 scope"""
-                headers = {"Authorization": "Bearer {}".format(auth["bearer"])}
-                r = []
-                r.append(requests.get(auth_url+"/user/stack-user",
-                                      headers=headers).json())
+                headers = self.build_headers(auth["bearer"])
+                r = requests.get(auth_url+"/user/stack-user",
+                                      headers=headers).json()
                 r.append(requests.get(auth_url+"/user/service-user",
                                       headers=headers).json())
                 username = None
-                for user in r[0]:
-                    if auth["username"] == user["name"]:
-                        subuser_scope = "{}:{}".format(user["type"], user["id"])
+                for user in r:
+                    try:
+                        if auth["username"] == user["name"]:
+                            subuser_scope = "{}:{}".format(user["type"], user["id"])
+                    except KeyError:
+                        pass
                 if subuser_scope is None:
                     raise Exception("Username not found in user list")
                 o = {"grant_type": "client_credentials", "scope": subuser_scope}
@@ -115,6 +116,13 @@ class TwentyIRestAPI:
         response.raise_for_status()
         return jr
 
+    def build_headers(self, auth=None):
+        if auth is None:
+            auth = self.auth
+        return {
+                   "Authorization": "Bearer {}".format(auth)
+               }
+
     def get(self, endpoint=None, **kwargs):
         """GET the endpoint and return the response as JSON if decodable
 
@@ -124,8 +132,8 @@ class TwentyIRestAPI:
         """
         if endpoint is None:
             raise ValueError("no URL supplied")
-        headers = {"Authorization": "Bearer {}".format(self.auth)}
-        r = requests.get(self.get_url(endpoint), **kwargs, headers=headers)
+        r = requests.get(self.get_url(endpoint), **kwargs,
+                         headers=self.build_headers())
         return self.decode_response(r)
 
     def post(self, endpoint=None, data=None, **kwargs):
@@ -141,5 +149,5 @@ class TwentyIRestAPI:
             raise ValueError("no URL supplied")
         headers = {"Authorization": "Bearer {}".format(self.auth)}
         r = requests.post(self.get_url(endpoint), json=data, **kwargs,
-                          headers=headers)
+                          headers=self.build_headers())
         return self.decode_response(r)
