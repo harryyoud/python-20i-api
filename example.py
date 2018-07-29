@@ -1,4 +1,4 @@
-from twentyi_api import api
+import twentyi_api
 
 auth = {
             "bearer": "base64medaddy",
@@ -6,7 +6,7 @@ auth = {
 #            "password": "SuperSecurePassword"
        }
 
-twentyi = api.TwentyIRestAPI(auth=auth)
+twentyi = twentyi_api.TwentyIRestAPI(auth=auth)
 
 domains = twentyi.get("/domain")
 packages = twentyi.get("/package")
