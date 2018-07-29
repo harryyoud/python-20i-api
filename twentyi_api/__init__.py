@@ -34,9 +34,9 @@ class TwentyIRestAPI:
                 o = {"grant_type": "password", "username": auth["username"],
                      "password": auth["password"]}
                 r = requests.post(auth_url+"/login/authenticate", json=o,
-                                  headers=self.build_headers(auth["bearer"]))
+                                  headers=self._build_headers(auth["bearer"]))
                 try:
-                    token = self.token_to_bearer(r.json()["access_token"])
+                    token = self._token_to_bearer(r.json()["access_token"])
                     self.auth = token
                 except ValueError as e:
                     raise Exception("Got unexpected response from login "
@@ -44,7 +44,7 @@ class TwentyIRestAPI:
             elif "bearer" in auth and "username" in auth:
                 """Use reseller token and subuser username to limit to subuser
                 scope"""
-                headers = self.build_headers(auth["bearer"])
+                headers = self._build_headers(auth["bearer"])
                 r = requests.get(auth_url+"/user/stack-user",
                                       headers=headers).json()
                 r.append(requests.get(auth_url+"/user/service-user",
@@ -62,21 +62,21 @@ class TwentyIRestAPI:
                 r = requests.post(auth_url+"/login/authenticate", json=o,
                                   headers=headers)
                 try:
-                    token = self.token_to_bearer(r.json()["access_token"])
+                    token = self._token_to_bearer(r.json()["access_token"])
                     self.auth = token
                 except ValueError as e:
                     raise Exception("Got unexpected response from login "
                                     "endpoint") from e
             elif "bearer" in auth:
                 """Use reseller token"""
-                token = self.token_to_bearer(auth["bearer"])
+                token = self._token_to_bearer(auth["bearer"])
                 self.auth = token
             else:
                 raise ValueError("Please supply authentication")
         else:
             raise ValueError("Please supply authentication")
 
-    def token_to_bearer(self, token):
+    def _token_to_bearer(self, token):
         """base64 encode given token for use in HTTP headers
 
         Keyword arguments:
@@ -87,7 +87,7 @@ class TwentyIRestAPI:
         token = token.decode()
         return token
 
-    def get_url(self, endpoint):
+    def _get_url(self, endpoint):
         """Return URL from combining api URL and endpoint, stripping slashes
 
         Keyword arguments:
@@ -95,7 +95,7 @@ class TwentyIRestAPI:
         """
         return self.url + '/' + endpoint.lstrip('/')
 
-    def decode_response(self, response):
+    def _decode_response(self, response):
         """Extract JSON from response or return an error if unable
 
         Keyword arguments:
@@ -116,7 +116,7 @@ class TwentyIRestAPI:
         response.raise_for_status()
         return jr
 
-    def build_headers(self, auth=None):
+    def _build_headers(self, auth=None):
         if auth is None:
             auth = self.auth
         return {
@@ -132,9 +132,9 @@ class TwentyIRestAPI:
         """
         if endpoint is None:
             raise ValueError("no URL supplied")
-        r = requests.get(self.get_url(endpoint), **kwargs,
-                         headers=self.build_headers())
-        return self.decode_response(r)
+        r = requests.get(self._get_url(endpoint), **kwargs,
+                         headers=self._build_headers())
+        return self._decode_response(r)
 
     def post(self, endpoint=None, data=None, **kwargs):
         """POST the endpoint with given data (if supplied) and return the
@@ -148,6 +148,6 @@ class TwentyIRestAPI:
         if endpoint is None:
             raise ValueError("no URL supplied")
         headers = {"Authorization": "Bearer {}".format(self.auth)}
-        r = requests.post(self.get_url(endpoint), json=data, **kwargs,
-                          headers=self.build_headers())
-        return self.decode_response(r)
+        r = requests.post(self._get_url(endpoint), json=data, **kwargs,
+                          headers=self._build_headers())
+        return self._decode_response(r)
