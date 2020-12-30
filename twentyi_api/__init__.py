@@ -2,6 +2,9 @@ import requests
 import json
 import base64
 
+from requests import HTTPError
+
+
 class TwentyIRestAPI:
     def __init__(self, auth_url="https://auth-api.20i.com:3000",
                  url="https://api.20i.com", auth=None):
@@ -101,19 +104,15 @@ class TwentyIRestAPI:
         Keyword arguments:
          - response - requests module response type
         """
-        error = None
+        jr = {}
         try:
             jr = response.json()
-            try:
-                error = jr["error"]
-            except:
-                pass
+            response.raise_for_status()
         except json.decoder.JSONDecodeError as e:
-            raise ValueError("No valid JSON was returned from the"
-                             "server") from e
-        if error is not None:
-            print(json.dumps(error, indent=2))
-        response.raise_for_status()
+            raise APIError(message="No valid JSON was returned from the"
+                                   "server") from e
+        except HTTPError as e:
+            raise APIError(error=jr['error'] if 'error' in jr else None) from e
         return jr
 
     def _build_headers(self, auth=None):
@@ -151,3 +150,18 @@ class TwentyIRestAPI:
         r = requests.post(self._get_url(endpoint), json=data, **kwargs,
                           headers=self._build_headers())
         return self._decode_response(r)
+
+
+class APIError(Exception):
+    def __init__(self, message="TwentyI REST API Error", error=None):
+        super().__init__(message)
+        self.message = message
+        self.error = error
+
+    def __str__(self):
+        if self.error:
+            if 'message' in self.error:
+                return f"{self.message}: {self.error['message']}"
+            return f"{self.message}: {self.error}"
+        else:
+            return self.message
