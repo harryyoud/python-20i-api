@@ -36,7 +36,7 @@ class TwentyIRestAPI:
                 limit to subuser scope"""
                 o = {"grant_type": "password", "username": auth["username"],
                      "password": auth["password"]}
-                r = requests.post(auth_url+"/login/authenticate", json=o,
+                r = requests.post(auth_url + "/login/authenticate", json=o,
                                   headers=self._build_headers(auth["bearer"]))
                 try:
                     token = self._token_to_bearer(r.json()["access_token"])
@@ -48,21 +48,23 @@ class TwentyIRestAPI:
                 """Use reseller token and subuser username to limit to subuser
                 scope"""
                 headers = self._build_headers(auth["bearer"])
-                r = requests.get(auth_url+"/user/stack-user",
-                                      headers=headers).json()
-                r.append(requests.get(auth_url+"/user/service-user",
+                r = requests.get(auth_url + "/user/stack-user",
+                                 headers=headers).json()
+                r.append(requests.get(auth_url + "/user/service-user",
                                       headers=headers).json())
-                username = None
+                subuser_scope = None
                 for user in r:
                     try:
                         if auth["username"] == user["name"]:
-                            subuser_scope = "{}:{}".format(user["type"], user["id"])
+                            subuser_scope = "{}:{}".format(user["type"],
+                                                           user["id"])
                     except KeyError:
                         pass
                 if subuser_scope is None:
                     raise Exception("Username not found in user list")
-                o = {"grant_type": "client_credentials", "scope": subuser_scope}
-                r = requests.post(auth_url+"/login/authenticate", json=o,
+                o = {"grant_type": "client_credentials",
+                     "scope": subuser_scope}
+                r = requests.post(auth_url + "/login/authenticate", json=o,
                                   headers=headers)
                 try:
                     token = self._token_to_bearer(r.json()["access_token"])
@@ -119,8 +121,8 @@ class TwentyIRestAPI:
         if auth is None:
             auth = self.auth
         return {
-                   "Authorization": "Bearer {}".format(auth)
-               }
+            "Authorization": "Bearer {}".format(auth)
+        }
 
     def get(self, endpoint=None, **kwargs):
         """GET the endpoint and return the response as JSON if decodable
@@ -146,7 +148,6 @@ class TwentyIRestAPI:
         """
         if endpoint is None:
             raise ValueError("no URL supplied")
-        headers = {"Authorization": "Bearer {}".format(self.auth)}
         r = requests.post(self._get_url(endpoint), json=data, **kwargs,
                           headers=self._build_headers())
         return self._decode_response(r)
